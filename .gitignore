@@ -1,2 +1,4 @@
 agent-cli
 agent-cli.exe
+# Agent rules/workflows downloaded by agent-cli (do not commit)
+.agent
