@@ -8,30 +8,37 @@ import (
 	"github.com/odinnordico/antigravity-agents/internal/github"
 	"github.com/odinnordico/antigravity-agents/internal/gitignore"
 	"github.com/odinnordico/antigravity-agents/internal/rules"
+	"github.com/odinnordico/antigravity-agents/internal/workflows"
 	"github.com/spf13/cobra"
 )
 
-var agentTypes string
+var (
+	selectedTypes string
+	getRules      bool
+	getWorkflows  bool
+)
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Download rules for one or more agent types",
-	Long: `Downloads all rule files for the specified agent type(s) from the
-GitHub repository and places them in the local .agent/rules directory.
+	Short: "Download rules and/or workflows for specified types",
+	Long: `Downloads rule and/or workflow files for the specified type(s) from the
+GitHub repository and places them in the local .agent/rules and .agent/workflows directories.
 
-Multiple types can be specified as a comma-separated list.
-Example: agent-cli get --type go,python,agentic`,
+Multiple types can be specified as comma-separated lists.
+
+Examples:
+  agent-cli get --type go,python
+  agent-cli get --workflow git,testing
+  agent-cli get --type go --workflow git`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if agentTypes == "" {
-			fmt.Fprintln(os.Stderr, "Error: --type flag is required")
+		if !getRules && !getWorkflows {
+			fmt.Fprintln(os.Stderr, "Error: at least one of --rules or --workflow is required")
 			os.Exit(1)
 		}
 
-		// Parse comma-separated types
-		requestedTypes := parseTypes(agentTypes)
-		if len(requestedTypes) == 0 {
-			fmt.Fprintln(os.Stderr, "Error: no valid types specified")
+		if selectedTypes == "" {
+			fmt.Fprintln(os.Stderr, "Error: --type flag is required to specify which items to download")
 			os.Exit(1)
 		}
 
@@ -43,40 +50,77 @@ Example: agent-cli get --type go,python,agentic`,
 		}
 
 		client := github.NewClient(Repo)
-		manager := rules.NewManager(client, cwd)
+		rulesManager := rules.NewManager(client, cwd)
+		workflowsManager := workflows.NewManager(client, cwd)
 
-		// Validate all types before downloading
-		availableTypes, err := manager.ListAgentTypes()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error fetching available types: %v\n", err)
-			os.Exit(1)
-		}
+		requestedTypes := parseTypes(selectedTypes)
 
-		invalidTypes := validateTypes(requestedTypes, availableTypes)
-		if len(invalidTypes) > 0 {
-			fmt.Fprintf(os.Stderr, "Error: invalid agent type(s): %s\n", strings.Join(invalidTypes, ", "))
-			fmt.Fprintf(os.Stderr, "Available types: %s\n", strings.Join(availableTypes, ", "))
-			os.Exit(1)
-		}
-
-		fmt.Printf("Downloading rules for agent type(s): %s\n", strings.Join(requestedTypes, ", "))
-		fmt.Printf("From repository: %s\n\n", Repo)
-
-		// Download rules for each type
-		for _, agentType := range requestedTypes {
-			fmt.Printf("--- Downloading: %s ---\n", agentType)
-			if err := manager.DownloadRules(agentType); err != nil {
-				fmt.Fprintf(os.Stderr, "Error downloading '%s': %v\n", agentType, err)
+		// Parse and validate agent types (rules)
+		var requestedAgentTypes []string
+		if getRules {
+			requestedAgentTypes = requestedTypes
+			availableAgentTypes, err := rulesManager.ListTypes()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error fetching available agent types: %v\n", err)
+				os.Exit(1)
+			}
+			invalidTypes := validateTypes(requestedAgentTypes, availableAgentTypes)
+			if len(invalidTypes) > 0 {
+				fmt.Fprintf(os.Stderr, "Error: invalid agent type(s): %s\n", strings.Join(invalidTypes, ", "))
+				fmt.Fprintf(os.Stderr, "Available types: %s\n", strings.Join(availableAgentTypes, ", "))
 				os.Exit(1)
 			}
 		}
 
-		// Ensure .agent/rules is in .gitignore
-		if err := gitignore.EnsureAgentRulesIgnored(cwd); err != nil {
+		// Parse and validate workflow types
+		var requestedWorkflowTypes []string
+		if getWorkflows {
+			requestedWorkflowTypes = requestedTypes
+			availableWorkflowTypes, err := workflowsManager.ListTypes()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error fetching available workflow types: %v\n", err)
+				os.Exit(1)
+			}
+			invalidTypes := validateTypes(requestedWorkflowTypes, availableWorkflowTypes)
+			if len(invalidTypes) > 0 {
+				fmt.Fprintf(os.Stderr, "Error: invalid workflow type(s): %s\n", strings.Join(invalidTypes, ", "))
+				fmt.Fprintf(os.Stderr, "Available workflows: %s\n", strings.Join(availableWorkflowTypes, ", "))
+				os.Exit(1)
+			}
+		}
+
+		fmt.Printf("From repository: %s\n\n", Repo)
+
+		// Download rules for each agent type
+		if len(requestedAgentTypes) > 0 {
+			fmt.Printf("Downloading rules for: %s\n", strings.Join(requestedAgentTypes, ", "))
+			for _, agentType := range requestedAgentTypes {
+				fmt.Printf("\n[Rules: %s]\n", agentType)
+				if err := rulesManager.Download(agentType); err != nil {
+					fmt.Fprintf(os.Stderr, "Error downloading rules '%s': %v\n", agentType, err)
+					os.Exit(1)
+				}
+			}
+		}
+
+		// Download workflows for each workflow type
+		if len(requestedWorkflowTypes) > 0 {
+			fmt.Printf("\nDownloading workflows for: %s\n", strings.Join(requestedWorkflowTypes, ", "))
+			for _, workflowType := range requestedWorkflowTypes {
+				fmt.Printf("\n[Workflows: %s]\n", workflowType)
+				if err := workflowsManager.Download(workflowType); err != nil {
+					fmt.Fprintf(os.Stderr, "Error downloading workflows '%s': %v\n", workflowType, err)
+					os.Exit(1)
+				}
+			}
+		}
+
+		// Ensure .agent/ is in .gitignore
+		if err := gitignore.EnsureAgentIgnored(cwd); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to update .gitignore: %v\n", err)
 		}
 
-		fmt.Println("\nRules downloaded successfully!")
+		fmt.Println("\nDownload completed successfully!")
 	},
 }
 
@@ -111,6 +155,7 @@ func validateTypes(requested, available []string) []string {
 
 func init() {
 	rootCmd.AddCommand(getCmd)
-	getCmd.Flags().StringVarP(&agentTypes, "type", "t", "", "Agent type(s) to download rules for, comma-separated (required)")
-	getCmd.MarkFlagRequired("type")
+	getCmd.Flags().StringVarP(&selectedTypes, "type", "t", "", "Type(s) to download, comma-separated")
+	getCmd.Flags().BoolVarP(&getWorkflows, "workflows", "w", false, "Download workflows")
+	getCmd.Flags().BoolVarP(&getRules, "rules", "u", false, "Download agent rules")
 }

@@ -1,5 +1,5 @@
-// Package rules provides functionality to manage agent rules downloaded from GitHub.
-package rules
+// Package workflows provides functionality to manage agent workflows downloaded from GitHub.
+package workflows
 
 import (
 	"fmt"
@@ -9,15 +9,15 @@ import (
 	"github.com/odinnordico/antigravity-agents/internal/github"
 )
 
-const rulesPath = "agent/rules"
+const workflowsPath = "agent/workflows"
 
-// Manager handles downloading and managing agent rules.
+// Manager handles downloading and managing agent workflows.
 type Manager struct {
 	client    *github.Client
 	targetDir string
 }
 
-// NewManager creates a new rules manager.
+// NewManager creates a new workflows manager.
 func NewManager(client *github.Client, targetDir string) *Manager {
 	return &Manager{
 		client:    client,
@@ -25,11 +25,11 @@ func NewManager(client *github.Client, targetDir string) *Manager {
 	}
 }
 
-// ListTypes returns the available agent types from the repository.
+// ListTypes returns the available workflow types from the repository.
 func (m *Manager) ListTypes() ([]string, error) {
-	contents, err := m.client.ListContents(rulesPath)
+	contents, err := m.client.ListContents(workflowsPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list agent types: %w", err)
+		return nil, fmt.Errorf("failed to list workflow types: %w", err)
 	}
 
 	var types []string
@@ -42,16 +42,16 @@ func (m *Manager) ListTypes() ([]string, error) {
 	return types, nil
 }
 
-// Download downloads all rule files for the specified agent type.
-func (m *Manager) Download(agentType string) error {
-	sourcePath := filepath.Join(rulesPath, agentType)
+// Download downloads all workflow files for the specified workflow type.
+func (m *Manager) Download(workflowType string) error {
+	sourcePath := filepath.Join(workflowsPath, workflowType)
 	contents, err := m.client.ListContents(sourcePath)
 	if err != nil {
-		return fmt.Errorf("failed to list rules for type '%s': %w", agentType, err)
+		return fmt.Errorf("failed to list workflows for type '%s': %w", workflowType, err)
 	}
 
 	// Ensure target directory exists
-	targetPath := filepath.Join(m.targetDir, ".agent", "rules")
+	targetPath := filepath.Join(m.targetDir, ".agent", "workflows")
 	if err := os.MkdirAll(targetPath, 0755); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}

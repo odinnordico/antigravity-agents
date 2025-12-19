@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	agentEntry        = ".agent"
-	agentRulesComment = "# Agent rules/workflows downloaded by agent-cli (do not commit)"
+	agentEntry   = ".agent/"
+	agentComment = "# Agent rules/workflows downloaded by agent-cli (do not commit)"
 )
 
-// EnsureAgentRulesIgnored ensures that .agent/rules/ is in the .gitignore file.
+// EnsureAgentIgnored ensures that .agent/ is in the .gitignore file.
 // If the .gitignore file doesn't exist, it creates one.
 // If the entry already exists, it does nothing.
-func EnsureAgentRulesIgnored(targetDir string) error {
+func EnsureAgentIgnored(targetDir string) error {
 	gitignorePath := filepath.Join(targetDir, ".gitignore")
 
 	// Check if .gitignore exists
@@ -41,17 +41,17 @@ func EnsureAgentRulesIgnored(targetDir string) error {
 	return appendEntry(gitignorePath)
 }
 
-// createGitignoreWithEntry creates a new .gitignore file with the agent rules entry.
+// createGitignoreWithEntry creates a new .gitignore file with the agent entry.
 func createGitignoreWithEntry(path string) error {
-	content := fmt.Sprintf("%s\n%s\n", agentRulesComment, agentEntry)
+	content := fmt.Sprintf("%s\n%s\n", agentComment, agentEntry)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create .gitignore: %w", err)
 	}
-	fmt.Println("Created .gitignore with agent rules entry")
+	fmt.Println("Created .gitignore with agent entry")
 	return nil
 }
 
-// entryExists checks if the agent rules entry already exists in .gitignore.
+// entryExists checks if the agent entry already exists in .gitignore.
 func entryExists(path string) (bool, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -62,7 +62,8 @@ func entryExists(path string) (bool, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line == agentEntry || line == ".agent/rules" {
+		// Check for .agent/ or .agent (without trailing slash) or .agent/rules or .agent/workflows
+		if line == ".agent/" || line == ".agent" || line == ".agent/rules/" || line == ".agent/workflows/" {
 			return true, nil
 		}
 	}
@@ -70,7 +71,7 @@ func entryExists(path string) (bool, error) {
 	return false, scanner.Err()
 }
 
-// appendEntry appends the agent rules entry to an existing .gitignore file.
+// appendEntry appends the agent entry to an existing .gitignore file.
 func appendEntry(path string) error {
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
@@ -78,11 +79,11 @@ func appendEntry(path string) error {
 	}
 	defer file.Close()
 
-	content := fmt.Sprintf("\n%s\n%s\n", agentRulesComment, agentEntry)
+	content := fmt.Sprintf("\n%s\n%s\n", agentComment, agentEntry)
 	if _, err := file.WriteString(content); err != nil {
 		return fmt.Errorf("failed to append to .gitignore: %w", err)
 	}
 
-	fmt.Println("Added agent rules entry to .gitignore")
+	fmt.Println("Added agent entry to .gitignore")
 	return nil
 }

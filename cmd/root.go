@@ -31,6 +31,6 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&Repo, "repo", "odinnordico/antigravity-agents",
+	rootCmd.PersistentFlags().StringVarP(&Repo, "repo", "r", "odinnordico/antigravity-agents",
 		"GitHub repository to fetch rules from (format: owner/repo)")
 }
