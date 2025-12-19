@@ -2,6 +2,9 @@
 
 `agent-cli` is a powerful, extensible command-line tool designed to manage agentic rules and workflows. It allows developers to quickly download curated rule sets and automation workflows directly from the [antigravity-agents](https://github.com/odinnordico/antigravity-agents) ecosystem into their local projects.
 
+> [!NOTE]
+> This project is inspired by **Google's Antigravity Agent-First IDE** ([antigravity.codes](https://antigravity.codes/)) and its [predefined rules](https://antigravity.codes/rules). We aim to bring similar agentic capabilities to CLI workflows.
+
 ## Features
 
 - 📂 **Multi-Category Downloads**: Separately manage **Rules** (best practices, coding standards) and **Workflows** (automation steps, CI/CD).
