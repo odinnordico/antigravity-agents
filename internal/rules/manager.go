@@ -51,7 +51,7 @@ func (m *Manager) Download(agentType string) error {
 	}
 
 	// Ensure target directory exists
-	targetPath := filepath.Join(m.targetDir, ".agent", "rules")
+	targetPath := filepath.Join(m.targetDir, "rules")
 	if err := os.MkdirAll(targetPath, 0755); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}

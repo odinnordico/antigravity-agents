@@ -51,7 +51,7 @@ func (m *Manager) Download(workflowType string) error {
 	}
 
 	// Ensure target directory exists
-	targetPath := filepath.Join(m.targetDir, ".agent", "workflows")
+	targetPath := filepath.Join(m.targetDir, "workflows")
 	if err := os.MkdirAll(targetPath, 0755); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}

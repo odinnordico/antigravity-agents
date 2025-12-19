@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/odinnordico/antigravity-agents/internal/github"
@@ -16,6 +17,7 @@ var (
 	selectedTypes string
 	getRules      bool
 	getWorkflows  bool
+	outputDir     string
 )
 
 // getCmd represents the get command
@@ -50,8 +52,11 @@ Examples:
 		}
 
 		client := github.NewClient(Repo)
-		rulesManager := rules.NewManager(client, cwd)
-		workflowsManager := workflows.NewManager(client, cwd)
+		// targetPath is the base output directory (default: .agent)
+		targetPath := filepath.Join(cwd, outputDir)
+
+		rulesManager := rules.NewManager(client, targetPath)
+		workflowsManager := workflows.NewManager(client, targetPath)
 
 		requestedTypes := parseTypes(selectedTypes)
 
@@ -115,8 +120,8 @@ Examples:
 			}
 		}
 
-		// Ensure .agent/ is in .gitignore
-		if err := gitignore.EnsureAgentIgnored(cwd); err != nil {
+		// Ensure output directory is in .gitignore
+		if err := gitignore.EnsureAgentIgnored(cwd, outputDir); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to update .gitignore: %v\n", err)
 		}
 
@@ -158,4 +163,5 @@ func init() {
 	getCmd.Flags().StringVarP(&selectedTypes, "type", "t", "", "Type(s) to download, comma-separated")
 	getCmd.Flags().BoolVarP(&getWorkflows, "workflows", "w", false, "Download workflows")
 	getCmd.Flags().BoolVarP(&getRules, "rules", "u", false, "Download agent rules")
+	getCmd.Flags().StringVarP(&outputDir, "output", "o", ".agent", "Destination folder for downloads")
 }
